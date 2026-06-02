@@ -1,0 +1,4 @@
+supabase
+duckdb
+dbt-core
+dbt-duckdb
