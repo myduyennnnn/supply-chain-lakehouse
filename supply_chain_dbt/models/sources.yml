@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: bronze_orders
+    description: "Raw Parquet files từ Cloudflare R2 Bronze layer"
+    meta:
+      external_location: "s3://supply-chain-ai-native/bronze/orders/DataCoSupplyChainDataset.parquet"
+    tables:
+      - name: raw_orders
+        description: "DataCo Supply Chain dataset — 180k+ giao dịch"
+        external:
+          location: "s3://supply-chain-ai-native/bronze/orders/DataCoSupplyChainDataset.parquet"
+          format: parquet
