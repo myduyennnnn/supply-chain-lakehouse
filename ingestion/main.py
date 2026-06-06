@@ -153,6 +153,7 @@ def main():
         run_id=run_id,
         status="FAILED" if failed else "SUCCESS",
         success_count=success_count,
+        skipped_count=skipped_count,
         failed_count=len(failed),
         total_rows=total_rows,
         duration_seconds=duration,

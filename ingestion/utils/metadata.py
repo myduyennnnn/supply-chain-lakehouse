@@ -61,17 +61,19 @@ def build_r2_key(
     prefix: str,
     filename: str,
     extension: str,
+    ingested_date: str | None = None,
 ) -> str:
     """
-    Build flat Bronze path.
+    Build versioned Bronze path with Hive-style date partition.
 
-    Bronze layer lưu static datasets — không partition theo date
-    vì data không tăng trưởng hàng ngày. Lineage được track
-    qua metadata columns (_ingested_at, _ingestion_run_id).
+    Append-only: each run writes a new date-partitioned file,
+    preserving full history. DuckDB reads all partitions via glob
+    with hive_partitioning=true, adding ingested_date as a column.
 
     Example:
-        bronze/dataco/DataCoSupplyChainDataset.parquet
-        bronze/clickstream/tokenized_access_logs.parquet
+        bronze/orders/ingested_date=2026-06-06/DataCoSupplyChainDataset.parquet
+        bronze/clickstream/ingested_date=2026-06-06/tokenized_access_logs.parquet
     """
     stem = Path(filename).stem
-    return f"{prefix}/{stem}.{extension}"
+    date_str = ingested_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return f"{prefix}/ingested_date={date_str}/{stem}.{extension}"

@@ -44,6 +44,7 @@ def update_pipeline_run(
     run_id: str,
     status: str,
     success_count: int,
+    skipped_count: int,
     failed_count: int,
     total_rows: int,
     duration_seconds: float,
@@ -56,6 +57,7 @@ def update_pipeline_run(
     client.table("pipeline_runs").update({
         "status":           status,
         "success_count":    success_count,
+        "skipped_count":    skipped_count,
         "failed_count":     failed_count,
         "total_rows":       total_rows,
         "duration_seconds": round(duration_seconds, 3),

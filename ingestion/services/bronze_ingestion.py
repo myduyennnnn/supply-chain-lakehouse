@@ -8,6 +8,7 @@ Orchestrate ingestion của 1 dataset:
 import os
 import time
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -65,6 +66,7 @@ def ingest_dataset(
         False,
     )
 
+    ingested_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     start = time.time()
 
     logger.info("")
@@ -177,6 +179,7 @@ def ingest_dataset(
         prefix=config["bronze_prefix"],
         filename=filename,
         extension="csv",
+        ingested_date=ingested_date,
     )
 
     parquet_key = (
@@ -184,6 +187,7 @@ def ingest_dataset(
             prefix=config["bronze_prefix"],
             filename=filename,
             extension="parquet",
+            ingested_date=ingested_date,
         )
         if not skip_parquet
         else None
