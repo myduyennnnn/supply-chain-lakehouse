@@ -1,0 +1,168 @@
+version: 2
+
+models:
+  - name: stg_order_items
+    description: "Order items table — grain: 1 row = 1 Order Item Id"
+    columns:
+      - name: order_item_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+
+      - name: order_id
+        description: "Foreign key → stg_order"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_order')
+                field: order_id
+
+      - name: product_card_id
+        description: "Foreign key → stg_product"
+        tests:
+          - not_null
+
+      - name: department_id
+        description: "Foreign key → stg_department"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_department')
+                field: department_id
+
+      - name: order_item_quantity
+        tests:
+          - not_null
+
+      - name: sales
+        tests:
+          - not_null
+
+      - name: order_profit
+        tests:
+          - not_null
+
+  - name: stg_order
+    description: "Order header + shipping info — grain: 1 row = 1 Order Id"
+    columns:
+      - name: order_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: "Foreign key → stg_customer"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customer')
+                field: customer_id
+
+      - name: payment_type
+        tests:
+          - not_null
+
+      - name: order_date
+        tests:
+          - not_null
+
+      - name: shipping_date
+        tests:
+          - not_null
+
+      - name: order_status
+        tests:
+          - not_null
+
+      - name: late_delivery_risk
+        tests:
+          - not_null
+
+      - name: is_actual_late
+        tests:
+          - not_null
+
+      - name: is_label_violation
+        tests:
+          - not_null
+
+  - name: stg_customer
+    description: "Customer dimension — grain: 1 row = 1 Customer Id"
+    columns:
+      - name: customer_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_full_name
+        tests:
+          - not_null
+
+      - name: customer_segment
+        tests:
+          - not_null
+
+      - name: customer_city
+        tests:
+          - not_null
+
+      - name: customer_country
+        tests:
+          - not_null
+
+  - name: stg_product
+    description: "Product + category info — grain: 1 row = 1 Product Card Id"
+    columns:
+      - name: product_card_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+
+      - name: product_name
+        tests:
+          - not_null
+
+      - name: product_price
+        tests:
+          - not_null
+
+      - name: product_status
+        tests:
+          - not_null
+
+      - name: category_id
+        tests:
+          - not_null
+
+      - name: category_name
+        tests:
+          - not_null
+
+      - name: department_id
+        description: "Foreign key → stg_department"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_department')
+                field: department_id
+
+  - name: stg_department
+    description: "Department/ngành hàng — grain: 1 row = 1 Department Id"
+    columns:
+      - name: department_id
+        description: "Primary key"
+        tests:
+          - unique
+          - not_null
+
+      - name: department_name
+        tests:
+          - not_null
