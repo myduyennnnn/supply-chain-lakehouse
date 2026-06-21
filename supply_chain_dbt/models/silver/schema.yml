@@ -15,23 +15,24 @@ models:
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_order')
-                field: order_id
+              to: ref('stg_order')
+              field: order_id
 
       - name: product_card_id
         description: "Foreign key → stg_product"
         tests:
           - not_null
+          - relationships:
+              to: ref('stg_product')
+              field: product_card_id
 
       - name: department_id
         description: "Foreign key → stg_department"
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_department')
-                field: department_id
+              to: ref('stg_department')
+              field: department_id
 
       - name: order_item_quantity
         tests:
@@ -59,9 +60,8 @@ models:
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_customer')
-                field: customer_id
+              to: ref('stg_customer')
+              field: customer_id
 
       - name: payment_type
         tests:
@@ -150,9 +150,8 @@ models:
         tests:
           - not_null
           - relationships:
-              arguments:
-                to: ref('stg_department')
-                field: department_id
+              to: ref('stg_department')
+              field: department_id
 
   - name: stg_department
     description: "Department/ngành hàng — grain: 1 row = 1 Department Id"

@@ -5,7 +5,7 @@
 ) }}
 
 WITH source AS (
-    SELECT * FROM {{ source('bronze_orders', 'raw_orders') }}
+    SELECT * FROM {{ ref('bronze_orders') }}
 ),
 
 cleaned AS (
@@ -13,6 +13,7 @@ cleaned AS (
         CAST("Department Id" AS INTEGER)            AS department_id,
         TRIM("Department Name")                     AS department_name,
 
+        CURRENT_TIMESTAMP AS _loaded_at,
         _ingested_at
 
     FROM source

@@ -35,8 +35,8 @@ models:
       +materialized: view
       +schema: bronze
     silver:
-      +materialized: table
+      +materialized: external
       +schema: silver
     gold:
-      +materialized: table
+      +materialized: external
       +schema: gold

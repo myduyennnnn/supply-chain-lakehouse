@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fact_order_items
+    description: >
+      Fact table ở grain order item
+    columns:
+      - name: order_item_id
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_order')
+              field: order_id
+      - name: product_card_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_product')
+              field: product_card_id
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+      - name: order_date_key
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: shipping_date_key
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: order_item_quantity
+      - name: order_item_product_price
+      - name: order_item_discount_amount
+      - name: order_item_discount_rate
+      - name: sales
+      - name: order_item_total
+      - name: order_item_profit_ratio
+      - name: order_profit
+        description: "= 'Order Profit Per Order' của source."

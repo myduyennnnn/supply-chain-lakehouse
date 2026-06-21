@@ -1,0 +1,88 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: "Customer dimension – one row per customer."
+    columns:
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+      - name: customer_full_name
+        tests:
+          - not_null
+      - name: customer_segment
+      - name: customer_city
+      - name: customer_state
+      - name: customer_country
+      - name: customer_street
+      - name: customer_zipcode
+
+  - name: dim_product
+    description: "Product dimension, denormalized with department name."
+    columns:
+      - name: product_card_id
+        tests:
+          - unique
+          - not_null
+      - name: product_name
+        tests:
+          - not_null
+      - name: product_price
+      - name: product_status_label
+        tests:
+          - accepted_values:
+              values: ["Active", "Inactive"]
+      - name: category_id
+      - name: category_name
+      - name: department_id
+      - name: department_name
+
+  - name: dim_order
+    description: "Order header dimension – one row per order, chỉ chứa thuộc tính mô tả, không chứa measure và không chứa customer_id (đã đưa xuống fact)."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: payment_type
+      - name: order_status
+      - name: market
+      - name: order_region
+      - name: order_country
+      - name: order_state
+      - name: order_city
+      - name: delivery_latitude
+      - name: delivery_longitude
+      - name: order_date
+        tests:
+          - not_null
+      - name: shipping_date
+      - name: shipping_mode
+      - name: delivery_status
+      - name: days_scheduled
+      - name: days_actual
+      - name: days_diff
+      - name: late_delivery_risk
+      - name: is_actual_late
+      - name: is_label_violation
+
+  - name: dim_date
+    description: "Generated calendar dimension spanning min(order_date) to max(shipping_date)."
+    columns:
+      - name: date_key
+        tests:
+          - unique
+          - not_null
+      - name: date_day
+        tests:
+          - unique
+          - not_null
+      - name: year
+      - name: quarter
+      - name: month
+      - name: month_name
+      - name: day_of_month
+      - name: day_of_week
+      - name: day_name
+      - name: week_of_year

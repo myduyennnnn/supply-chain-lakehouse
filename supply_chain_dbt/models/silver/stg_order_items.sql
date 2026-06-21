@@ -1,12 +1,11 @@
-{# File: models/silver/stg_order_items.sql #}
 {{ config(
     materialized='external',
-    location='s3://supply-chain-ai-native/silver/order/stg_order_items.parquet',
+    location='s3://supply-chain-ai-native/silver/order_items/stg_order_items.parquet',
     format='parquet'
 ) }}
 
 WITH source AS (
-    SELECT * FROM {{ source('bronze_orders', 'raw_orders') }}
+    SELECT * FROM {{ ref('bronze_orders') }}
 ),
 
 cleaned AS (

@@ -1,0 +1,105 @@
+version: 2
+
+models:
+  - name: mart_executive_summary
+    description: "Mart phục vụ tab Executive – sales/profit/orders theo region và department."
+    columns:
+      - name: order_region
+      - name: department_name
+      - name: total_orders
+      - name: total_sales
+      - name: total_profit
+      - name: profit_margin_pct
+        description: "Diagnostic: profit margin (%) theo combo region x department, dùng để phát hiện combo đang lỗ."
+
+  - name: mart_customer_summary
+    description: "Mart phục vụ tab Customer – phân bố customer theo segment và country."
+    columns:
+      - name: customer_segment
+      - name: customer_country
+      - name: total_customers
+
+  - name: mart_product_category_sales
+    description: "Mart phục vụ tab Product – sales theo category_name."
+    columns:
+      - name: category_name
+        tests:
+          - unique
+      - name: total_sales
+
+  - name: mart_product_discount_impact
+    description: "Mart phục vụ tab Product – avg sales theo discount rate."
+    columns:
+      - name: order_item_discount_rate
+        tests:
+          - unique
+      - name: avg_sales
+
+  - name: mart_supply_chain_shipping_mode
+    description: "Mart phục vụ tab Supply Chain – phân bố đơn hàng theo shipping mode."
+    columns:
+      - name: shipping_mode
+        tests:
+          - unique
+      - name: total_orders
+
+  - name: mart_supply_chain_region_delay
+    description: "Mart phục vụ tab Supply Chain – độ trễ giao hàng trung bình theo region."
+    columns:
+      - name: order_region
+        tests:
+          - unique
+      - name: avg_delay
+
+  - name: mart_ai_monitoring_summary
+    description: "Mart phục vụ tab AI Monitoring – KPI tổng predicted/actual late và label violations (single-row)."
+    columns:
+      - name: predicted_late
+      - name: actual_late
+      - name: violations
+
+  - name: mart_ai_monitoring_risk_by_region
+    description: "Mart phục vụ tab AI Monitoring – số đơn hàng có risk cao theo region."
+    columns:
+      - name: order_region
+        tests:
+          - unique
+      - name: risk_orders
+
+  - name: mart_ai_monitoring_risk_by_mode_region
+    description: "Diagnostic – risk/violations theo region x shipping_mode để biết model sai nhiều ở combo nào."
+    columns:
+      - name: order_region
+      - name: shipping_mode
+      - name: total_orders
+      - name: predicted_late
+      - name: actual_late
+      - name: violations
+
+  - name: mart_product_discount_impact_by_category
+    description: "Diagnostic – avg sales theo category x discount_bucket, để biết category nào nhạy cảm nhất với discount."
+    columns:
+      - name: category_name
+      - name: discount_bucket
+      - name: order_item_count
+      - name: avg_sales
+
+  - name: mart_trend_monthly
+    description: "Diagnostic – trend sales/profit/orders/avg_delay theo tháng (dùng dim_date)."
+    columns:
+      - name: year
+      - name: month
+      - name: month_name
+      - name: total_orders
+      - name: total_sales
+      - name: total_profit
+      - name: avg_delay
+
+  - name: mart_customer_segment_revenue
+    description: "Diagnostic – sales/profit theo customer_segment, để biết segment nào đóng góp nhiều nhất."
+    columns:
+      - name: customer_segment
+      - name: total_customers
+      - name: total_sales
+      - name: total_profit
+      - name: avg_revenue_per_customer

@@ -1,4 +1,3 @@
-{# File: models/silver/stg_order.sql #}
 {{ config(
     materialized='external',
     location='s3://supply-chain-ai-native/silver/order/stg_order.parquet',
@@ -6,7 +5,7 @@
 ) }}
 
 WITH source AS (
-    SELECT * FROM {{ source('bronze_orders', 'raw_orders') }}
+    SELECT * FROM {{ ref('bronze_orders') }}
 ),
 
 cleaned AS (
@@ -49,6 +48,7 @@ cleaned AS (
             ELSE FALSE 
         END AS is_label_violation,
 
+        CURRENT_TIMESTAMP AS _loaded_at,
         _ingested_at
 
     FROM source

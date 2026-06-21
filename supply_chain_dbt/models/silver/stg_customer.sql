@@ -5,7 +5,7 @@
 ) }}
 
 WITH source AS (
-    SELECT * FROM {{ source('bronze_orders', 'raw_orders') }}
+    SELECT * FROM {{ ref('bronze_orders') }}
 ),
 
 cleaned AS (
@@ -28,6 +28,7 @@ cleaned AS (
             ELSE TRIM(CAST("Customer Zipcode" AS VARCHAR))
         END                                                                     AS customer_zipcode,
 
+        CURRENT_TIMESTAMP AS _loaded_at,
         _ingested_at
 
     FROM source
