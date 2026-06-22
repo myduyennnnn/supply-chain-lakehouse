@@ -28,106 +28,107 @@ data/                        Raw CSV files (DataCo Supply Chain dataset)
 
 ## Prerequisites
 
-- **Python 3.11+**
+- **Python 3.11+** — [python.org/downloads](https://www.python.org/downloads/) (tick *Add to PATH*)
 - **Git**
-- **Cloudflare R2** account with a bucket named `supply-chain-ai-native`
+- **Cloudflare R2** — bucket named `supply-chain-ai-native`
 - **Supabase** project (free tier is enough)
-- PowerShell 5.1+ (Windows) or bash (Linux/Mac)
 
 ---
 
-## 1. Clone
+## Quick Start
 
-```bash
+### Scenario A — First time (you own the data)
+
+```
+1. Clone  →  2. Fill .env  →  3. .\setup.ps1  →  4. Run pipeline  →  5. Push to R2
+```
+
+### Scenario B — Teammate cloning (data already on R2)
+
+```
+1. Clone  →  2. Fill .env  →  3. .\setup.ps1   ← done, dashboard works immediately
+```
+
+---
+
+## Step 1 — Clone
+
+```powershell
 git clone <repo-url>
 cd supply-chain-lakehouse
 ```
 
 ---
 
-## 2. Create `.env`
+## Step 2 — Create `.env`
 
 ```powershell
-copy .env.example .env   # Windows
-# cp .env.example .env   # Linux / Mac
+copy .env.example .env
 ```
 
-Open `.env` and fill in your credentials:
+Open `.env` and fill in all credentials:
 
 | Variable | Where to get |
 |---|---|
-| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare Dashboard → R2 → Manage R2 API Tokens → Create Token (Read & Write) |
+| `R2_ACCESS_KEY_ID` | Cloudflare Dashboard → R2 → Manage R2 API Tokens → Create Token (Read & Write) |
+| `R2_SECRET_ACCESS_KEY` | same token page |
 | `R2_ENDPOINT_URL` | `https://<account_id>.r2.cloudflarestorage.com` |
-| `SUPABASE_URL` / `SUPABASE_KEY` | Supabase Dashboard → Settings → API |
-| `SUPABASE_DB_URL` | Supabase Dashboard → Settings → Database → Connection String (URI mode) |
+| `R2_BUCKET_NAME` | `supply-chain-ai-native` (default) |
+| `SUPABASE_URL` | Supabase Dashboard → Settings → API |
+| `SUPABASE_KEY` | Supabase Dashboard → Settings → API → `anon public` key |
+| `SUPABASE_DB_URL` | Supabase Dashboard → Settings → Database → Connection string (URI) |
 
 ---
 
-## 3. Run setup script
+## Step 3 — Run setup script
 
-One command handles everything: virtualenv, dependencies, `~/.dbt/profiles.yml`, Supabase tables, silver layer init, and connectivity check.
+One command installs everything and gets the project ready to run.
 
-**Windows:**
 ```powershell
 .\setup.ps1
 ```
 
-**Linux / macOS:**
-```bash
-bash setup.sh
-```
+> If PowerShell blocks the script, run this once first:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
 
-The script runs 8 steps automatically:
+The script runs these steps automatically:
 
 | Step | Action |
 |---|---|
-| 1 | Check Python ≥ 3.11 |
-| 2 | Create `.venv` and install `requirements.txt` |
-| 3 | Detect `.env`, stop if credentials are missing |
-| 4 | Generate `~/.dbt/profiles.yml` from `.env` |
-| 5 | Create 5 Supabase tables (idempotent) |
-| 6 | Run silver dbt models to register VIEWs in `lakehouse.db`* |
-| 7 | Run `verify_system.py` |
-
-> *Silver models read from the existing bronze Parquet on R2 and re-write the same silver Parquet — this is safe and idempotent. It is required so that gold models can reference `main_silver.*` tables in DuckDB.
+| 1 | Check Python ≥ 3.11 is installed |
+| 2 | Install all packages from `requirements.txt` (system Python, no venv) |
+| 3 | Check `.env` exists and all required variables are filled |
+| 4 | Generate `~/.dbt/profiles.yml` from `.env` (DuckDB + R2 credentials) |
+| 5 | Create 5 Supabase tables for logging and metadata (idempotent) |
+| 6 | Download `lakehouse.db` + ML model from R2 *(if already pushed by teammate)* |
+| 7 | Run `verify_system.py` — health check for all layers |
 
 Expected output at end of setup:
+
 ```
 [OK]  Environment vars
 [OK]  R2 connectivity
 [OK]  Supabase
-[OK]  DuckDB gold        ← silver VIEWs registered, gold tables readable
-[FAIL] ML artifacts      ← normal, model not trained yet
-[SKIP] MLflow server     ← normal if server not started yet
+[OK]  DuckDB gold
+[OK]  ML artifacts      ← only if push_lakehouse.py was run before
+[SKIP] MLflow server    ← normal, start it separately if needed
 ```
 
 ---
 
-## 7. Push to R2 (one-time, after first run)
+## Step 4 — Run the pipeline (Scenario A only)
 
-After running the pipeline and training the model, push `lakehouse.db` + ML artifacts to R2 so teammates can clone without re-running anything:
+> Skip this step if you are a teammate cloning an existing project — `setup.ps1` already downloaded everything from R2.
 
-```powershell
-python scripts/push_lakehouse.py
-```
-
-This uploads:
-- `lakehouse.db` → `R2/lakehouse/lakehouse.db` (silver + gold VIEWs + feat_delivery_risk table)
-- `ml_app/ml_model/*.pkl` → `R2/ml_model/` (trained model + preprocessor + feature lists)
-
-> Teammates who clone after this will have `setup.ps1` download these files automatically — no dbt run, no model training required.
-
----
-
-## 8. Run the pipeline
-
-### First-time full run (bronze → silver → gold)
+### Full run (bronze → silver → gold)
 
 ```powershell
 python orchestration/pipeline.py
 ```
 
-### Subsequent runs — gold only (bronze data already on R2)
+### Gold only (bronze data already on R2)
 
 ```powershell
 python orchestration/pipeline.py --gold-only
@@ -139,7 +140,7 @@ python orchestration/pipeline.py --gold-only
 python orchestration/pipeline.py --gold-only --with-ml
 ```
 
-### All options
+### All pipeline flags
 
 | Flag | Effect |
 |---|---|
@@ -147,13 +148,35 @@ python orchestration/pipeline.py --gold-only --with-ml
 | `--no-bronze` | skip ingestion, run silver + gold |
 | `--silver-only` | silver only |
 | `--gold-only` | gold only |
-| `--with-ml` | include ML feature models + train model |
+| `--with-ml` | include ML feature models + train classifier |
 
 ---
 
-## 9. Train ML model (standalone)
+## Step 5 — Push to R2 (Scenario A only)
 
-After the gold pipeline has run at least once (`feat_delivery_risk` exists in `lakehouse.db`):
+After the pipeline and training are done, push `lakehouse.db` + ML artifacts to R2 so teammates can clone without re-running anything:
+
+```powershell
+python scripts/push_lakehouse.py
+```
+
+What gets uploaded:
+
+| File | R2 location |
+|---|---|
+| `lakehouse.db` | `R2/lakehouse/lakehouse.db` |
+| `ml_app/ml_model/best_model.pkl` | `R2/ml_model/best_model.pkl` |
+| `ml_app/ml_model/preprocessor.pkl` | `R2/ml_model/preprocessor.pkl` |
+| `ml_app/ml_model/selected_features.pkl` | `R2/ml_model/selected_features.pkl` |
+| `ml_app/ml_model/all_original_features.pkl` | `R2/ml_model/all_original_features.pkl` |
+
+> After this, any teammate running `.\setup.ps1` will download these files automatically at Step 6 — no pipeline run, no model training required.
+
+---
+
+## Train ML model (standalone)
+
+After gold has run at least once and `feat_delivery_risk` exists in `lakehouse.db`:
 
 ```powershell
 python ml_app/train_model.py
@@ -163,22 +186,22 @@ Artifacts saved to `ml_app/ml_model/`:
 
 | File | Description |
 |---|---|
-| `best_model.pkl` | Trained model (XGBoost by default) |
+| `best_model.pkl` | Best model (XGBoost by default) |
 | `preprocessor.pkl` | ColumnTransformer (imputer + scaler + encoder) |
 | `selected_features.pkl` | Feature names after importance filtering |
 | `all_original_features.pkl` | Full original feature list |
-| `results.csv` | Comparison of all 5 models |
+| `results.csv` | Comparison table of all 5 models |
 
-Then push to R2 so teammates don't need to retrain:
+Then push to R2:
 ```powershell
 python scripts/push_lakehouse.py
 ```
 
 ---
 
-## 10. MLflow tracking server (optional)
+## MLflow tracking server (optional)
 
-MLflow uses **Supabase PostgreSQL** as backend and **Cloudflare R2** as artifact store.
+MLflow uses **Supabase PostgreSQL** as backend store and **Cloudflare R2** as artifact store. The Model Registry is shared — anyone with the same `.env` sees the same experiments.
 
 Open a **separate terminal** and keep it running:
 
@@ -192,15 +215,13 @@ UI: [http://localhost:5000](http://localhost:5000)
 
 ---
 
-## 11. Data Portal
+## Data Portal
 
 ```powershell
 streamlit run data_portal/app.py
 ```
 
 UI: [http://localhost:8501](http://localhost:8501)
-
-Pages available:
 
 | Page | Description |
 |---|---|
@@ -237,7 +258,7 @@ supply-chain-lakehouse/
 │           ├── dimensions/      dim_customer, dim_order, dim_product, dim_date
 │           ├── facts/           fact_order_items
 │           ├── marts/           Executive summary, trend, AI monitoring
-│           └── ml/features/     feat_delivery_risk, feat_customer (in lakehouse.db)
+│           └── ml/features/     feat_delivery_risk (in lakehouse.db)
 ├── ml_app/
 │   ├── train_model.py           Train + evaluate 5 models, log to MLflow
 │   ├── mlflow_setup.py          MLflow config constants
@@ -249,10 +270,15 @@ supply-chain-lakehouse/
 │   ├── app.py                   Streamlit entry point
 │   └── pages/                   Multi-page UI
 ├── scripts/
+│   ├── push_lakehouse.py        Upload lakehouse.db + ML artifacts to R2
+│   ├── pull_lakehouse.py        Download lakehouse.db + ML artifacts from R2
 │   ├── start_mlflow_server.ps1  Start MLflow with R2 + Supabase
 │   └── verify_system.py         Health check for all layers
+├── setup.ps1                    Windows setup script (no venv, system Python)
+├── setup.sh                     Linux/macOS setup script
 ├── requirements.txt
-└── .env                         Credentials (gitignored, create manually)
+├── .env.example                 Credential template
+└── .env                         Your credentials (gitignored)
 ```
 
 ---

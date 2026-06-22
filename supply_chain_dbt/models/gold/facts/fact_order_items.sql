@@ -9,8 +9,8 @@ SELECT
     oi.order_id,                                            -- FK → dim_order
     oi.product_card_id,                                     -- FK → dim_product
     o.customer_id,                                          -- FK → dim_customer
-    CAST(strftime(o.order_date, '%Y%m%d') AS INTEGER)    AS order_date_key,     -- FK → dim_date (role-playing)
-    CAST(strftime(o.shipping_date, '%Y%m%d') AS INTEGER) AS shipping_date_key,  -- FK → dim_date (role-playing)
+    CAST(strftime('%Y%m%d', o.order_date)    AS INTEGER) AS order_date_key,     -- FK → dim_date (role-playing)
+    CAST(strftime('%Y%m%d', o.shipping_date) AS INTEGER) AS shipping_date_key,  -- FK → dim_date (role-playing)
 
     oi.order_item_quantity,
     oi.order_item_product_price,
