@@ -2,51 +2,160 @@ import streamlit as st
 import plotly.express as px
 from shared.db import query
 
-# ── Theme ─────────────────────────────────────────────────────────────────────
-GOLD_THEME = ["#ffe082", "#ffb300", "#ffa000", "#ff8f00", "#ff6f00", "#424242", "#212121"]
+GOLD_THEME = ["#6F42C1", "#007BFF", "#00CCCC", "#0DCAF0", "#17A2B8", "#8A5EDB", "#3395FF"]
 
 def _theme(fig):
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#e5e5e7",
-        title_font_color="#ffe082",
-        margin=dict(l=20, r=20, t=40, b=20),
-        xaxis=dict(gridcolor="#2c2514", zerolinecolor="#2c2514"),
-        yaxis=dict(gridcolor="#2c2514", zerolinecolor="#2c2514"),
+        font_color="#8A8FA8",
+        title_font_color="#1E2243",
+        title_font_size=16,
+        title_font_family="'Outfit', sans-serif",
+        margin=dict(l=16, r=16, t=50, b=16),
+        xaxis=dict(gridcolor="#EEECf8", zerolinecolor="#EEECf8", showgrid=True),
+        yaxis=dict(gridcolor="#EEECf8", zerolinecolor="#EEECf8", showgrid=True),
+        legend=dict(bgcolor="rgba(255,255,255,0.75)", bordercolor="#E4E8F5", borderwidth=1),
     )
     return fig
-
-# ── CSS ───────────────────────────────────────────────────────────────────────
 st.html("""
 <style>
-    .stApp { background-color:#161515 !important; color:#e5e5e7 !important; font-family:'Inter',sans-serif; }
-    [data-testid="stSidebar"] { background-color:#1c1b1b !important; border-right:1px solid #332a15; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+    /* ── Base ── */
+    .stApp {
+        background: linear-gradient(155deg, #F3EFFF 0%, #ECF4FF 50%, #E6FDFC 100%) !important;
+        font-family: 'Outfit', sans-serif !important;
+        color: #1E2243 !important;
+    }
+
+    /* ── Title ── */
     .main-title {
-        font-size:2.3rem; font-weight:700;
-        background:linear-gradient(45deg,#ffe082,#ffb300);
-        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-        margin-bottom:2rem;
+        font-size: 2.8rem;
+        font-weight: 900;
+        background: linear-gradient(90deg, #6F42C1 0%, #007BFF 55%, #00CCCC 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.5px;
+        margin-bottom: 2.5rem;
     }
+
+    /* ── Section Headers ── */
     .section-header {
-        font-size:1.4rem; font-weight:600; color:#ffe082;
-        border-left:4px solid #ffb300; padding-left:10px;
-        margin-top:2rem; margin-bottom:1rem;
-        text-transform:uppercase; letter-spacing:1px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #6F42C1;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        margin: 2.5rem 0 1.5rem;
+        padding-left: 14px;
+        border-left: 4px solid #007BFF;
     }
-    [data-testid="stMetricValue"] { color:#ffb300 !important; font-size:1.8rem !important; font-weight:bold !important; }
-    [data-testid="stMetricLabel"] { color:#b0bec5 !important; font-size:0.85rem !important; }
+
+    /* ── KPI Cards ── */
     [data-testid="stMetric"] {
-        background-color:#1e1d1d; border:1px solid #3a321a;
-        border-radius:12px; padding:12px 18px; box-shadow:0 4px 15px rgba(0,0,0,0.3);
+        border-radius: 20px;
+        padding: 28px 22px;
+        border: none !important;
+        box-shadow: 0 10px 32px rgba(111,66,193,0.18), 0 2px 8px rgba(0,0,0,0.06);
+        overflow: hidden;
+        position: relative;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
-    hr { border-color:#332a15 !important; margin:2.5rem 0 !important; }
-    .stTabs [data-baseweb="tab-list"] { gap:8px; }
-    .stTabs [data-baseweb="tab"] { background-color:#1e1d1d; border-radius:8px 8px 0 0; padding:10px 18px; color:#b0bec5; }
-    .stTabs [aria-selected="true"] { background-color:#2a2310 !important; color:#ffe082 !important; border-bottom:2px solid #ffb300; }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-7px);
+        box-shadow: 0 20px 48px rgba(111,66,193,0.26), 0 6px 16px rgba(0,0,0,0.09);
+    }
+    [data-testid="stMetric"]::after {
+        content: '';
+        position: absolute;
+        width: 170px; height: 170px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.13);
+        top: -60px; right: -45px;
+        pointer-events: none;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: #fff !important;
+        font-size: 2.3rem !important;
+        font-weight: 800 !important;
+        position: relative; z-index: 2;
+    }
+    [data-testid="stMetricLabel"] {
+        color: rgba(255,255,255,0.88) !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        position: relative; z-index: 2;
+    }
+
+    /* Column 1 — Purple */
+    [data-testid="column"]:nth-child(1) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #9B6AE0 0%, #6F42C1 100%);
+    }
+    /* Column 2 — Blue */
+    [data-testid="column"]:nth-child(2) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #4AAAFF 0%, #007BFF 100%);
+    }
+    /* Column 3 — Teal */
+    [data-testid="column"]:nth-child(3) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #33E0E0 0%, #00CCCC 100%);
+    }
+    /* Column 4 — Cyan-Teal */
+    [data-testid="column"]:nth-child(4) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #30D6F5 0%, #17A2B8 100%);
+    }
+
+    /* ── Divider as gradient line ── */
+    hr {
+        border: none !important;
+        height: 2px !important;
+        background: linear-gradient(90deg, #6F42C1, #007BFF, #00CCCC) !important;
+        opacity: 0.28 !important;
+        margin: 3rem 0 !important;
+    }
+
+    /* ── Tabs ── */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        border-bottom: 2px solid #E4E8F5;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border: none;
+        padding: 10px 24px 12px;
+        color: #8A8FA8;
+        font-weight: 700;
+        font-size: 1rem;
+        border-radius: 10px 10px 0 0;
+        transition: color 0.2s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover { color: #6F42C1; }
+    .stTabs [aria-selected="true"] {
+        color: #6F42C1 !important;
+        border-bottom: 3px solid #6F42C1 !important;
+        background: rgba(111,66,193,0.07) !important;
+    }
+
+    /* ── Sidebar ── */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(175deg, #1C1050 0%, #0A061F 100%) !important;
+    }
+    [data-testid="stSidebar"] label { color: #ffffff !important; }
+    [data-testid="stSidebarContent"] { color: #ffffff !important; }
+    [data-testid="stSidebarContent"] * { color: #ffffff !important; }
+
+    /* ── Captions ── */
+    .stCaption p { color: #8A8FA8 !important; font-style: italic; }
+
+    p { color: #1E2243; }
 </style>
 """)
 
+# Cập nhật lại thẻ Header để áp dụng class main-title
 st.markdown('<h1 class="main-title">Supply Chain Analytics Dashboard</h1>', unsafe_allow_html=True)
 
 # ── Sidebar filter ─────────────────────────────────────────────────────────────

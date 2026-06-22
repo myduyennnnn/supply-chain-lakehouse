@@ -88,6 +88,8 @@ _NUM_RANGES: dict[str, tuple] = {
 
 _BINARY_FEATS = {"is_weekend", "is_urgent_shipping", "is_actual_late"}
 
+ML_THEME = ["#6F42C1", "#007BFF", "#00CCCC", "#0DCAF0", "#17A2B8", "#8A5EDB", "#3395FF"]
+
 
 # ── Artifact loading ──────────────────────────────────────────────────────────
 @st.cache_resource
@@ -216,23 +218,174 @@ def _build_form(art: dict) -> dict:
     return user_input
 
 
+# ── Plotly theme helper ───────────────────────────────────────────────────────
+def _theme(fig):
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#8A8FA8",
+        title_font_color="#1E2243",
+        title_font_size=16,
+        title_font_family="'Outfit', sans-serif",
+        margin=dict(l=16, r=16, t=50, b=16),
+        xaxis=dict(gridcolor="#EEECf8", zerolinecolor="#EEECf8", showgrid=True),
+        yaxis=dict(gridcolor="#EEECf8", zerolinecolor="#EEECf8", showgrid=True),
+        legend=dict(bgcolor="rgba(255,255,255,0.75)", bordercolor="#E4E8F5", borderwidth=1),
+    )
+    return fig
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.html("""
 <style>
-  .stApp { background-color:#161515 !important; color:#e5e5e7 !important; }
-  [data-testid="stSidebar"] { background-color:#1c1b1b !important; border-right:1px solid #332a15; }
-  .ml-title {
-      font-size:2rem; font-weight:700;
-      background:linear-gradient(45deg,#ffe082,#ffb300);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:.5rem;
-  }
-  [data-testid="stMetricValue"] { color:#ffb300 !important; font-size:1.8rem !important; font-weight:bold !important; }
-  .risk-card { border-radius:10px; padding:20px; text-align:center; margin:12px 0; }
-  .risk-high { background:#3d1515; border:2px solid #cc2222; }
-  .risk-low  { background:#0f2e1a; border:2px solid #228b22; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+    /* ── Base ── */
+    .stApp {
+        background: linear-gradient(155deg, #F3EFFF 0%, #ECF4FF 50%, #E6FDFC 100%) !important;
+        font-family: 'Outfit', sans-serif !important;
+        color: #1E2243 !important;
+    }
+
+    /* ── Title ── */
+    .ml-title {
+        font-size: 2.8rem;
+        font-weight: 900;
+        background: linear-gradient(90deg, #6F42C1 0%, #007BFF 55%, #00CCCC 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.5px;
+        margin-bottom: 2.5rem;
+    }
+
+    /* ── Section Headers ── */
+    .section-header {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #6F42C1;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        margin: 2.5rem 0 1.5rem;
+        padding-left: 14px;
+        border-left: 4px solid #007BFF;
+    }
+
+    /* ── KPI Cards ── */
+    [data-testid="stMetric"] {
+        border-radius: 20px;
+        padding: 28px 22px;
+        border: none !important;
+        box-shadow: 0 10px 32px rgba(111,66,193,0.18), 0 2px 8px rgba(0,0,0,0.06);
+        overflow: hidden;
+        position: relative;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-7px);
+        box-shadow: 0 20px 48px rgba(111,66,193,0.26), 0 6px 16px rgba(0,0,0,0.09);
+    }
+    [data-testid="stMetric"]::after {
+        content: '';
+        position: absolute;
+        width: 170px; height: 170px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.13);
+        top: -60px; right: -45px;
+        pointer-events: none;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: #fff !important;
+        font-size: 2.3rem !important;
+        font-weight: 800 !important;
+        position: relative; z-index: 2;
+    }
+    [data-testid="stMetricLabel"] {
+        color: rgba(255,255,255,0.88) !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 1.4px;
+        position: relative; z-index: 2;
+    }
+
+    /* Column gradients — Purple / Blue / Teal / Cyan / Violet */
+    [data-testid="column"]:nth-child(1) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #9B6AE0 0%, #6F42C1 100%);
+    }
+    [data-testid="column"]:nth-child(2) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #4AAAFF 0%, #007BFF 100%);
+    }
+    [data-testid="column"]:nth-child(3) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #33E0E0 0%, #00CCCC 100%);
+    }
+    [data-testid="column"]:nth-child(4) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #30D6F5 0%, #17A2B8 100%);
+    }
+    [data-testid="column"]:nth-child(5) [data-testid="stMetric"] {
+        background: linear-gradient(140deg, #A07EE8 0%, #8A5EDB 100%);
+    }
+
+    /* ── Divider ── */
+    hr {
+        border: none !important;
+        height: 2px !important;
+        background: linear-gradient(90deg, #6F42C1, #007BFF, #00CCCC) !important;
+        opacity: 0.28 !important;
+        margin: 3rem 0 !important;
+    }
+
+    /* ── Risk Cards ── */
+    .risk-card { border-radius: 16px; padding: 24px; text-align: center; margin: 12px 0; }
+    .risk-high  { background: rgba(204,34,34,0.08); border: 2px solid #cc2222; }
+    .risk-low   { background: rgba(0,204,204,0.08); border: 2px solid #00CCCC; }
+
+    /* ── Tabs ── */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        border-bottom: 2px solid #E4E8F5;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        border: none;
+        padding: 10px 24px 12px;
+        color: #8A8FA8;
+        font-weight: 700;
+        font-size: 1rem;
+        border-radius: 10px 10px 0 0;
+        transition: color 0.2s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover { color: #6F42C1; }
+    .stTabs [aria-selected="true"] {
+        color: #6F42C1 !important;
+        border-bottom: 3px solid #6F42C1 !important;
+        background: rgba(111,66,193,0.07) !important;
+    }
+
+    /* ── Sidebar ── */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(175deg, #1C1050 0%, #0A061F 100%) !important;
+    }
+    [data-testid="stSidebar"] label { color: #ffffff !important; }
+    [data-testid="stSidebarContent"] { color: #ffffff !important; }
+    [data-testid="stSidebarContent"] * { color: #ffffff !important; }
+
+    /* ── Dataframe ── */
+    [data-testid="stDataFrame"] {
+        border-radius: 16px !important;
+        overflow: hidden !important;
+        box-shadow: 0 8px 28px rgba(111,66,193,0.12), 0 2px 8px rgba(0,0,0,0.05) !important;
+        border: 1px solid #E4E8F5 !important;
+    }
+
+    /* ── Captions ── */
+    .stCaption p { color: #8A8FA8 !important; font-style: italic; }
+
+    p { color: #1E2243; }
 </style>
 """)
 
@@ -275,14 +428,14 @@ with tab_single:
         prob, X_sel = _predict_single(art, user_input)
         is_late = prob >= 0.5
         label   = "HIGH RISK — Predicted Late" if is_late else "LOW RISK — On Time"
-        color   = "#ff4444" if is_late else "#44bb44"
+        color   = "#cc2222" if is_late else "#00CCCC"
         card    = "risk-high" if is_late else "risk-low"
 
         st.markdown(f"""
         <div class="risk-card {card}">
             <div style="font-size:1.4rem;font-weight:700;color:{color};">{label}</div>
             <div style="font-size:2.8rem;font-weight:900;color:{color};">{prob:.1%}</div>
-            <div style="color:#aaa;font-size:0.85rem;">Xác suất giao hàng trễ</div>
+            <div style="color:#8A8FA8;font-size:0.85rem;">Xác suất giao hàng trễ</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -409,17 +562,14 @@ with tab_batch:
         c3.metric("Đúng hạn",         n_ok)
         c4.metric("Threshold",        f"{threshold:.2f}")
 
-        # Biểu đồ phân phối xác suất
         fig_dist = px.histogram(
             df_up, x="prob_late", nbins=20,
             title="Phân phối xác suất trễ",
-            color_discrete_sequence=["#ffb300"],
+            color_discrete_sequence=[ML_THEME[0]],
         )
-        fig_dist.add_vline(x=threshold, line_dash="dash", line_color="#ff4444",
+        fig_dist.add_vline(x=threshold, line_dash="dash", line_color="#cc2222",
                            annotation_text=f"Threshold {threshold:.2f}")
-        fig_dist.update_layout(paper_bgcolor="#161515", plot_bgcolor="#1c1b1b",
-                               font_color="#e5e5e7", xaxis_title="Prob Late", yaxis_title="Count")
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.plotly_chart(_theme(fig_dist), use_container_width=True)
 
         # Download
         export = df_up.to_csv(index=False).encode("utf-8")
@@ -446,8 +596,8 @@ with tab_batch:
                 expanded  = is_late and i < 5
 
                 with st.expander(f"Đơn #{real_idx} | {badge} | Prob: {prob:.1%}", expanded=expanded):
-                    bg  = "#2a0f0f" if is_late else "#0a1f0a"
-                    clr = "#ff8888" if is_late else "#88ff88"
+                    bg  = "rgba(204,34,34,0.06)"  if is_late else "rgba(0,204,204,0.06)"
+                    clr = "#cc2222"               if is_late else "#007755"
                     st.dataframe(
                         pd.DataFrame(row).T
                           .style.set_properties(**{"background-color": bg, "color": clr}),
@@ -491,16 +641,14 @@ with tab_bench:
     st.markdown("### Model Performance Comparison")
     metrics = ["Accuracy", "Precision", "Recall", "F1-Score", "AUC"]
     st.dataframe(
-        art["results"].style.highlight_max(axis=0, subset=metrics, color="#1e3a1e"),
+        art["results"].style.highlight_max(axis=0, subset=metrics, color="#EEECf8"),
         use_container_width=True, hide_index=True,
     )
     fig_b = px.bar(
         art["results"], x="Model", y=metrics, barmode="group", height=380,
-        color_discrete_sequence=["#ffb300", "#e65100", "#c62828", "#1565c0", "#2e7d32"],
+        color_discrete_sequence=ML_THEME,
     )
-    fig_b.update_layout(paper_bgcolor="#161515", plot_bgcolor="#1c1b1b",
-                        font_color="#e5e5e7", legend_title_text="Metric", xaxis_title=None)
-    st.plotly_chart(fig_b, use_container_width=True)
+    st.plotly_chart(_theme(fig_b), use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -653,14 +801,9 @@ with tab_registry:
                     plot_df, x="start_time", y=numeric_cols,
                     title="Metrics theo thời gian",
                     markers=True, height=320,
-                    color_discrete_sequence=["#ffb300", "#e65100", "#2e7d32", "#1565c0"],
+                    color_discrete_sequence=ML_THEME,
                 )
-                fig_trend.update_layout(
-                    paper_bgcolor="#161515", plot_bgcolor="#1c1b1b",
-                    font_color="#e5e5e7", xaxis_title=None, yaxis_title="Score",
-                    legend_title_text="Metric",
-                )
-                st.plotly_chart(fig_trend, use_container_width=True)
+                st.plotly_chart(_theme(fig_trend), use_container_width=True)
 
             # Run table
             st.dataframe(
