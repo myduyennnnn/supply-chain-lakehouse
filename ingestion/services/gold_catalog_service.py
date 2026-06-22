@@ -43,8 +43,9 @@ _R2_PREFIX_MAP = {
     "mart_ai_monitoring_risk_by_mode_region":  "gold/marts/dashboard",
     "mart_trend_monthly":                      "gold/marts/dashboard",
     "mart_customer_segment_revenue":           "gold/marts/dashboard",
-    # ml
-    "feat_customer": "gold/ml",
+    # ml features (local DuckDB table, not R2)
+    "feat_delivery_risk": "gold/ml/features",
+    "feat_customer":      "gold/ml/features",
 }
 
 

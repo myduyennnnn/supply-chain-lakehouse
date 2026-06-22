@@ -50,6 +50,7 @@ from orchestration.tasks.gold import (
     log_dbt_gold,
     sync_gold_catalog_task,
 )
+from orchestration.tasks.ml import train_ml_model
 
 
 @flow(
@@ -106,6 +107,7 @@ def lakehouse_pipeline(
         if run_ml:
             dbt_run_gold_ml()
             log_dbt_gold()        # ← log ml RUN results ngay
+            train_ml_model()      # ← retrain model từ feat_delivery_risk mới
 
         dbt_test_gold()
         log_dbt_gold()            # ← log TEST results

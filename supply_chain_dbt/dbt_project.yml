@@ -40,3 +40,5 @@ models:
     gold:
       +materialized: external
       +schema: gold
+      ml:
+        +materialized: table

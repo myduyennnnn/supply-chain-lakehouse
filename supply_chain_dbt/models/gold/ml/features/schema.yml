@@ -1,0 +1,206 @@
+version: 2
+
+models:
+  # ══════════════════════════════════════════════════════════════════════════════
+  # feat_delivery_risk
+  # Grain   : 1 row per order item
+  # Target  : late_delivery_risk (0/1)
+  # Leakage : delivery_status, days_actual, days_diff, is_actual_late,
+  #           is_label_violation đã bị loại BỎ ngay tại SQL.
+  #           train_model.py chỉ cần SELECT * FROM feat_delivery_risk.
+  # ══════════════════════════════════════════════════════════════════════════════
+  - name: feat_delivery_risk
+    description: >
+      Feature table ML-ready cho bài toán dự đoán late_delivery_risk.
+      Grain: 1 row per order item.
+      Toàn bộ cột leakage (chỉ biết SAU khi giao: delivery_status, days_actual,
+      days_diff, is_actual_late, is_label_violation) và các cột ID/PII/toạ độ
+      đã được loại bỏ ngay tại tầng SQL — train_model.py không cần drop thủ công.
+    columns:
+      # ── Order item measures ──────────────────────────────────────────────────
+      - name: order_item_quantity
+        description: "Số lượng sản phẩm trong order item."
+        tests:
+          - not_null
+
+      - name: order_item_product_price
+        description: "Đơn giá sản phẩm tại thời điểm đặt hàng."
+        tests:
+          - not_null
+
+      - name: order_item_discount_amount
+        description: "Số tiền giảm giá."
+
+      - name: order_item_discount_rate
+        description: "Tỷ lệ giảm giá (0–1)."
+
+      - name: sales
+        description: "Doanh thu order item (đã trừ giảm giá)."
+        tests:
+          - not_null
+
+      - name: order_item_total
+        description: "Tổng tiền order item."
+
+      - name: order_item_profit_ratio
+        description: "Tỷ suất lợi nhuận của order item."
+
+      - name: order_profit
+        description: "Lợi nhuận order item."
+
+      # ── Order-level descriptive attributes (biết TRƯỚC khi giao) ─────────────
+      - name: payment_type
+        description: "Phương thức thanh toán."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["DEBIT", "TRANSFER", "PAYMENT", "CASH"]
+
+      - name: market
+        description: "Khu vực thị trường (vd LATAM, USCA)."
+        tests:
+          - not_null
+
+      - name: order_region
+        description: "Vùng địa lý của đơn hàng."
+        tests:
+          - not_null
+
+      - name: order_country
+        description: "Quốc gia đặt hàng."
+        tests:
+          - not_null
+
+      - name: order_state
+        description: "Bang/tỉnh đặt hàng."
+
+      - name: order_city
+        description: "Thành phố đặt hàng."
+
+      - name: shipping_mode
+        description: "Hình thức vận chuyển."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Standard Class", "Second Class", "First Class", "Same Day"]
+
+      - name: days_scheduled
+        description: "Số ngày giao hàng dự kiến — biết TRƯỚC khi giao, không phải leakage."
+        tests:
+          - not_null
+
+      # ── Product attributes ───────────────────────────────────────────────────
+      - name: category_name
+        description: "Tên category sản phẩm."
+
+      - name: department_name
+        description: "Tên department sản phẩm."
+
+      # ── Customer attributes ──────────────────────────────────────────────────
+      - name: customer_segment
+        description: "Phân khúc khách hàng."
+        tests:
+          - accepted_values:
+              values: ["Consumer", "Corporate", "Home Office"]
+
+      - name: customer_country
+        description: "Quốc gia khách hàng."
+
+      # ── Derived temporal features ────────────────────────────────────────────
+      - name: is_weekend
+        description: "1 nếu order_date rơi vào thứ 7/CN, ngược lại 0."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+      - name: order_month
+        description: "Tháng đặt hàng (1–12), derive từ order_date."
+        tests:
+          - not_null
+
+      - name: order_quarter
+        description: "Quý đặt hàng (1–4), derive từ order_date."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+
+      - name: ship_day_of_week
+        description: "Thứ trong tuần của shipping_date (0=Thứ 2 .. 6=CN)."
+        tests:
+          - not_null
+
+      # ── Derived business features ────────────────────────────────────────────
+      - name: profit_margin
+        description: "order_profit / sales. NULL nếu sales = 0."
+
+      - name: unit_price
+        description: "sales / order_item_quantity. NULL nếu quantity = 0."
+
+      - name: is_urgent_shipping
+        description: "1 nếu days_scheduled <= 2, ngược lại 0."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+      # ── Target ───────────────────────────────────────────────────────────────
+      - name: late_delivery_risk
+        description: "Target variable (0/1) — nhãn gốc từ dataset, dùng để train model."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # feat_customer
+  # Grain   : 1 row per customer
+  # Mục đích: Customer-level risk profile tổng hợp từ lịch sử đơn hàng.
+  #           Dùng cho phân tích rủi ro theo khách hàng (analytics, không train).
+  # ══════════════════════════════════════════════════════════════════════════════
+  - name: feat_customer
+    description: >
+      Customer-level risk profile — grain 1 row per customer.
+      Tổng hợp lịch sử: tổng đơn, trung bình ngày trễ, tỷ lệ giao trễ, flag cross-border.
+      Dùng cho analytics và monitoring, không dùng trực tiếp trong train_model.py.
+    columns:
+      - name: customer_id
+        description: "Khoá chính — mã khách hàng."
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_segment
+        description: "Phân khúc khách hàng (Consumer / Corporate / Home Office)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Consumer", "Corporate", "Home Office"]
+
+      - name: customer_country
+        description: "Quốc gia của khách hàng."
+        tests:
+          - not_null
+
+      - name: total_orders
+        description: "Tổng số đơn hàng khác nhau của khách hàng."
+        tests:
+          - not_null
+
+      - name: avg_days_late
+        description: >
+          Trung bình số ngày trễ (days_actual - days_scheduled) theo lịch sử.
+          Âm = giao sớm hơn dự kiến. Dùng lịch sử, không phải leakage với
+          mục đích analytics.
+
+      - name: late_delivery_rate
+        description: "Tỷ lệ đơn giao trễ theo lịch sử (0.0 – 1.0)."
+
+      - name: is_cross_border
+        description: "1 nếu khách hàng có ít nhất 1 đơn giao khác quốc gia đặt hàng."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]

@@ -1,17 +1,29 @@
 {{ config(materialized='table') }}
 
-WITH order_customer AS (
-    SELECT
-        o.order_id,
-        o.customer_id,
+WITH order_level AS (
+    SELECT DISTINCT
+        oi.customer_id,
+        oi.order_id,
         o.days_actual,
         o.days_scheduled,
         o.late_delivery_risk,
-        o.order_country,
+        o.order_country
+    FROM {{ ref('fact_order_items') }} oi
+    LEFT JOIN {{ ref('dim_order') }}   o  ON oi.order_id = o.order_id
+),
+
+order_customer AS (
+    SELECT
+        ol.order_id,
+        ol.customer_id,
+        ol.days_actual,
+        ol.days_scheduled,
+        ol.late_delivery_risk,
+        ol.order_country,
         c.customer_segment,
         c.customer_country
-    FROM {{ ref('stg_order') }} o
-    LEFT JOIN {{ ref('stg_customer') }} c ON o.customer_id = c.customer_id
+    FROM order_level                  ol
+    LEFT JOIN {{ ref('dim_customer') }} c ON ol.customer_id = c.customer_id
 ),
 
 final AS (

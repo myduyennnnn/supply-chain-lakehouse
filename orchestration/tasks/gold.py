@@ -4,9 +4,9 @@ Tasks: Gold Layer
 1. dbt_run_gold_dims    — dimensions (dim_customer, dim_date, dim_order, dim_product)
 2. dbt_run_gold_facts   — facts (fact_order_items)
 3. dbt_run_gold_marts   — dashboard marts (12 mart_*.sql)
-4. dbt_run_gold_ml      — ML features (feat_customer) — placeholder, chưa có model
+4. dbt_run_gold_ml      — ML features (feat_delivery_risk, feat_customer) — local DuckDB table
 5. dbt_test_gold        — dbt tests toàn bộ gold layer
-6. log_dbt_gold         — đẩy run_results.json lên Supabase (gọi sau MỖI lệnh dbt)
+6. log_dbt_gold         — đẩy run_results.json lên Supabase (gọi sau mỗi lệnh dbt)
 7. sync_gold_catalog    — sync schema gold từ DuckDB lên metadata_catalog
 
 QUAN TRỌNG: log_dbt_gold() phải được gọi ngay sau mỗi lệnh dbt run/test riêng lẻ
@@ -37,6 +37,7 @@ def _dbt_run(select: str, logger) -> None:
         ],
         check=True,
         text=True,
+        encoding="utf-8",
         capture_output=True,
     )
     logger.info(result.stdout)
@@ -77,7 +78,6 @@ def dbt_run_gold_marts() -> None:
 
 @task(name="dbt-run-gold-ml")
 def dbt_run_gold_ml() -> None:
-    """Placeholder — chạy khi có ML model thật."""
     logger = get_run_logger()
     logger.info("Running dbt gold ML feature models")
     _dbt_run("path:models/gold/ml", logger)
@@ -95,6 +95,7 @@ def dbt_test_gold() -> None:
         ],
         check=True,
         text=True,
+        encoding="utf-8",
         capture_output=True,
     )
     logger.info(result.stdout)

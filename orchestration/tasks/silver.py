@@ -39,6 +39,7 @@ def dbt_run_silver() -> None:
         ],
         check=True,
         text=True,
+        encoding="utf-8",
         capture_output=True,
     )
     logger.info(result.stdout)
@@ -57,6 +58,7 @@ def dbt_test_silver() -> None:
         ],
         check=True,
         text=True,
+        encoding="utf-8",
         capture_output=True,
     )
     logger.info(result.stdout)
