@@ -9,6 +9,7 @@ nhưng giá trị thực tế trỏ tới AWS S3 (không phải Cloudflare R2).
 """
 
 import os
+from pathlib import Path
 
 import duckdb
 import pandas as pd
@@ -29,14 +30,11 @@ for var in REQUIRED_ENV:
     if not os.getenv(var):
         raise ValueError(f"Missing env variable: {var}")
 
-
-# ============================================================
 # TABLE REGISTRY
 #
 # Mỗi entry map "tên bảng dùng trong SQL" -> path tương đối
 # tính từ root bucket (không gồm bucket name), khớp với
 # `location` khai báo trong các dbt model (config materialized='external').
-# ============================================================
 
 TABLES = {
     "silver": {
@@ -98,7 +96,7 @@ def build_r2_path(layer: str, table_name: str) -> str:
 def get_connection() -> duckdb.DuckDBPyConnection:
     """Khởi tạo DuckDB connection với S3 (in-memory)."""
 
-    con = duckdb.connect(database=":memory:", config={"home_directory": "/tmp"})
+    con = duckdb.connect(database=":memory:", config={"home_directory": str(Path.home())})
 
     try:
         con.execute("LOAD httpfs")
@@ -110,8 +108,6 @@ def get_connection() -> duckdb.DuckDBPyConnection:
     con.execute(f"SET s3_secret_access_key='{os.getenv('R2_SECRET_ACCESS_KEY')}'")
 
     # Endpoint là optional: AWS S3 thật không cần set endpoint thủ công
-    # (DuckDB tự suy ra qua region). Chỉ set khi có giá trị, để tương
-    # thích ngược với R2/MinIO nếu sau này đổi backend.
     endpoint = os.getenv("R2_ENDPOINT_URL")
     if endpoint:
         con.execute(f"SET s3_endpoint='{endpoint.replace('https://', '')}'")

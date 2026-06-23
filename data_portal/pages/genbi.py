@@ -7,6 +7,7 @@ chạy trực tiếp trên gold layer qua httpfs (không cần lakehouse.db).
 
 import os
 import re
+from pathlib import Path
 
 import duckdb
 import pandas as pd
@@ -274,7 +275,7 @@ SAMPLE_QUESTIONS = [
 # DuckDB connection (in-memory, đọc thẳng từ R2)
 @st.cache_resource
 def get_genbi_connection() -> duckdb.DuckDBPyConnection:
-    con = duckdb.connect(database=":memory:", config={"home_directory": "/tmp"})
+    con = duckdb.connect(database=":memory:", config={"home_directory": str(Path.home())})
 
     try:
         con.execute("LOAD httpfs")
