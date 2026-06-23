@@ -679,6 +679,29 @@ with tab_bench:
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_shap:
     st.markdown("### Global Risk Drivers")
+
+    # ── Feature Importance (XGBoost built-in) ─────────────────────────────────
+    if hasattr(model, "feature_importances_"):
+        st.markdown('<div class="section-header">Feature Importance — XGBoost</div>', unsafe_allow_html=True)
+        st.caption("Mức độ đóng góp của từng feature khi model ra quyết định (gain importance).")
+
+        fi_df = (
+            pd.DataFrame({"feature": art["sel_feats"], "importance": model.feature_importances_})
+            .sort_values("importance", ascending=True)
+            .tail(20)
+        )
+        fig_fi = px.bar(
+            fi_df, x="importance", y="feature", orientation="h",
+            title=f"Top {len(fi_df)} Feature Importance ({best['Model']})",
+            color="importance", color_continuous_scale=["#0DCAF0", "#007BFF", "#6F42C1"],
+        )
+        fig_fi.update_layout(coloraxis_showscale=False, yaxis_title="", xaxis_title="Importance Score")
+        st.plotly_chart(_theme(fig_fi), use_container_width=True)
+
+        st.divider()
+
+    # ── SHAP Summary ──────────────────────────────────────────────────────────
+    st.markdown('<div class="section-header">SHAP Summary</div>', unsafe_allow_html=True)
     st.caption("SHAP summary trên 500 test samples. Đỏ = feature value cao, xanh = thấp.")
     try:
         sv_g, X_g, feats_g = _shap_global_data(best["Model"])
