@@ -13,6 +13,8 @@ data/                        Raw CSV files (DataCo Supply Chain dataset)
                           └─► Data Portal  Streamlit dashboard + prediction UI
 ```
 
+![Architecture Workflow](workflow/Workflow.png)
+
 | Layer | Storage | Tool |
 |---|---|---|
 | Bronze | Cloudflare R2 (`bronze/`) | Python + boto3 |
