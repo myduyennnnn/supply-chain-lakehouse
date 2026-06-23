@@ -274,7 +274,7 @@ SAMPLE_QUESTIONS = [
 # DuckDB connection (in-memory, đọc thẳng từ R2)
 @st.cache_resource
 def get_genbi_connection() -> duckdb.DuckDBPyConnection:
-    con = duckdb.connect(database=":memory:")
+    con = duckdb.connect(database=":memory:", config={"home_directory": "/tmp"})
 
     try:
         con.execute("LOAD httpfs")

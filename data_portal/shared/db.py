@@ -98,7 +98,7 @@ def build_r2_path(layer: str, table_name: str) -> str:
 def get_connection() -> duckdb.DuckDBPyConnection:
     """Khởi tạo DuckDB connection với S3 (in-memory)."""
 
-    con = duckdb.connect(database=":memory:")
+    con = duckdb.connect(database=":memory:", config={"home_directory": "/tmp"})
 
     try:
         con.execute("LOAD httpfs")

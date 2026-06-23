@@ -9,11 +9,14 @@ Late Delivery Risk Prediction — Combined ML Page
   5. ML Registry         — MLflow experiment history, production model info
 """
 
+import io
+import os
 import sys
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
+import boto3
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -92,15 +95,35 @@ ML_THEME = ["#6F42C1", "#007BFF", "#00CCCC", "#0DCAF0", "#17A2B8", "#8A5EDB", "#
 
 
 # ── Artifact loading ──────────────────────────────────────────────────────────
+def _r2_buf(fname: str) -> io.BytesIO:
+    """Download một file từ R2 vào memory buffer."""
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=os.getenv("R2_ENDPOINT_URL"),
+        aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
+    )
+    buf = io.BytesIO()
+    s3.download_fileobj(os.getenv("R2_BUCKET_NAME", "supply-chain-ai-native"), f"ml_model/{fname}", buf)
+    buf.seek(0)
+    return buf
+
+
+def _open(fname: str):
+    """Trả về local Path nếu tồn tại, ngược lại download từ R2."""
+    local = MODEL_DIR / fname
+    return local if local.exists() else _r2_buf(fname)
+
+
 @st.cache_resource
 def _load_artifacts() -> dict:
     return {
-        "model":        joblib.load(MODEL_DIR / "best_model.pkl"),
-        "preprocessor": joblib.load(MODEL_DIR / "preprocessor.pkl"),
-        "sel_feats":    joblib.load(MODEL_DIR / "selected_features.pkl"),
-        "all_feats":    list(joblib.load(MODEL_DIR / "all_original_features.pkl")),
-        "X_test":       joblib.load(MODEL_DIR / "X_test_p.pkl"),
-        "results":      pd.read_csv(MODEL_DIR / "results.csv").sort_values("F1-Score", ascending=False).reset_index(drop=True),
+        "model":        joblib.load(_open("best_model.pkl")),
+        "preprocessor": joblib.load(_open("preprocessor.pkl")),
+        "sel_feats":    joblib.load(_open("selected_features.pkl")),
+        "all_feats":    list(joblib.load(_open("all_original_features.pkl"))),
+        "X_test":       joblib.load(_open("X_test_p.pkl")),
+        "results":      pd.read_csv(_open("results.csv")).sort_values("F1-Score", ascending=False).reset_index(drop=True),
     }
 
 
@@ -391,17 +414,17 @@ st.html("""
 
 st.markdown('<div class="ml-title">Late Delivery Risk Prediction</div>', unsafe_allow_html=True)
 
-if not (MODEL_DIR / "best_model.pkl").exists():
+try:
+    art   = _load_artifacts()
+    model = art["model"]
+    best  = art["results"].iloc[0]
+except Exception as _e:
     st.error(
-        "Model chưa được train.\n\n"
-        "1. `python orchestration/pipeline.py --gold-only --with-ml`\n"
-        "2. `python ml_app/train_model.py`"
+        f"Không thể tải ML artifacts: `{_e}`\n\n"
+        "**Local:** chạy `python orchestration/pipeline.py --gold-only --with-ml`\n\n"
+        "**Cloud:** chạy `python scripts/push_lakehouse.py` để upload lên R2 trước."
     )
     st.stop()
-
-art   = _load_artifacts()
-model = art["model"]
-best  = art["results"].iloc[0]
 
 st.caption(
     f"Best model: **{best['Model']}** — AUC {best['AUC']:.3f} | F1 {best['F1-Score']:.3f} "
