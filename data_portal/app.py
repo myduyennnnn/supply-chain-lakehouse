@@ -12,6 +12,9 @@ pages = {
     "ML": [
         st.Page("pages/ml_delivery_risk.py",  title="Delivery Risk Prediction"),
     ],
+    "AI": [
+        st.Page("pages/genbi.py",             title="GenBI — Hỏi đáp AI"),
+    ],
 }
 
 pg = st.navigation(pages)

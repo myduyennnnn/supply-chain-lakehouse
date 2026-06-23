@@ -231,6 +231,7 @@ UI: [http://localhost:8501](http://localhost:8501)
 | ML Registry | MLflow model versions, metrics history |
 | Data Catalog | Metadata of all layers |
 | Pipeline Monitor | Supabase run logs |
+| GenBI — Hỏi đáp AI | Hỏi bằng tiếng Việt, AI tự viết SQL và truy vấn data warehouse (Groq) |
 
 ---
 
@@ -268,7 +269,11 @@ supply-chain-lakehouse/
 │   └── tasks/                   bronze / silver / gold / ml tasks
 ├── data_portal/
 │   ├── app.py                   Streamlit entry point
-│   └── pages/                   Multi-page UI
+│   └── pages/
+│       ├── data_preview.py      Data preview
+│       ├── sales_dashboard.py   Sales analytics
+│       ├── ml_delivery_risk.py  ML prediction + SHAP
+│       └── genbi.py             GenBI — Natural language → SQL (Groq)
 ├── scripts/
 │   ├── push_lakehouse.py        Upload lakehouse.db + ML artifacts to R2
 │   ├── pull_lakehouse.py        Download lakehouse.db + ML artifacts from R2
