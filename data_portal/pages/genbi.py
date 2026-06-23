@@ -363,12 +363,6 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st.markdown("**Bảng có sẵn:**")
-        st.markdown("- `fact_order_items`")
-        st.markdown("- `dim_customer / product / order / date`")
-        st.markdown("- 12 `mart_*` tables")
-
-        st.divider()
         st.markdown("**Câu hỏi mẫu:**")
         for q in SAMPLE_QUESTIONS:
             if st.button(q, use_container_width=True):
