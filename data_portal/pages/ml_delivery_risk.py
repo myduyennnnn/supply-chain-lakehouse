@@ -740,15 +740,29 @@ with tab_registry:
             try:
                 prod_mv   = client.get_model_version_by_alias(MODEL_NAME, "production")
                 prod_run  = client.get_run(prod_mv.run_id)
+                raw_metrics = prod_run.data.metrics
+                raw_tags    = prod_run.data.tags
+
+                # train_model.py log metrics theo dạng "{model_prefix}_{metric}"
+                # VD: xgboost_f1, logistic_reg_auc, random_forest_f1 ...
+                # Tìm prefix từ tag best_model_name
+                best_model_name = raw_tags.get("best_model_name", "")
+                prefix = best_model_name.lower().replace(" ", "_")
+
                 prod_info = {
                     "version":    prod_mv.version,
                     "run_id":     prod_mv.run_id,
                     "created_at": datetime.fromtimestamp(
                         prod_mv.creation_timestamp / 1000, tz=timezone.utc
                     ).strftime("%Y-%m-%d %H:%M UTC"),
-                    "metrics":    prod_run.data.metrics,
-                    "tags":       prod_run.data.tags,
+                    "metrics":    raw_metrics,
+                    "tags":       raw_tags,
                     "params":     prod_run.data.params,
+                    # Đọc đúng key: "{prefix}_f1", "{prefix}_auc", ...
+                    "f1":       raw_metrics.get(f"{prefix}_f1",       raw_metrics.get("best_f1",       0)),
+                    "auc":      raw_metrics.get(f"{prefix}_auc",      raw_metrics.get("best_auc",      0)),
+                    "accuracy": raw_metrics.get(f"{prefix}_accuracy", raw_metrics.get("best_accuracy", 0)),
+                    "recall":   raw_metrics.get(f"{prefix}_recall",   raw_metrics.get("best_recall",   0)),
                 }
             except Exception:
                 pass  # Chua co alias production
@@ -765,20 +779,27 @@ with tab_registry:
                     max_results=50,
                 )
                 if not runs.empty:
+                    # train_model.py log theo prefix model, không có key "best_*"
+                    # Dùng xgboost_* làm đại diện (champion model mặc định)
+                    # Nếu run nào có best_* (sau khi fix train_model) thì ưu tiên cột đó
+                    f1_col  = "metrics.best_f1"  if "metrics.best_f1"  in runs.columns else "metrics.xgboost_f1"
+                    auc_col = "metrics.best_auc" if "metrics.best_auc" in runs.columns else "metrics.xgboost_auc"
+                    acc_col = "metrics.best_accuracy" if "metrics.best_accuracy" in runs.columns else "metrics.xgboost_accuracy"
+                    rec_col = "metrics.best_recall"   if "metrics.best_recall"   in runs.columns else "metrics.xgboost_recall"
+
                     keep = ["run_id", "start_time", "status",
                             "tags.best_model_name",
                             "params.n_features_selected", "params.train_rows",
-                            "metrics.best_f1", "metrics.best_auc",
-                            "metrics.best_accuracy", "metrics.best_recall"]
+                            f1_col, auc_col, acc_col, rec_col]
                     runs_df = runs[[c for c in keep if c in runs.columns]].copy()
                     runs_df = runs_df.rename(columns={
                         "tags.best_model_name":       "best_model",
                         "params.n_features_selected": "features",
                         "params.train_rows":          "train_rows",
-                        "metrics.best_f1":            "F1",
-                        "metrics.best_auc":           "AUC",
-                        "metrics.best_accuracy":      "Accuracy",
-                        "metrics.best_recall":        "Recall",
+                        f1_col:  "F1",
+                        auc_col: "AUC",
+                        acc_col: "Accuracy",
+                        rec_col: "Recall",
                     })
                     runs_df["start_time"] = pd.to_datetime(
                         runs_df["start_time"], utc=True
@@ -803,10 +824,10 @@ with tab_registry:
         if prod_info:
             c1, c2, c3, c4, c5 = st.columns(5)
             c1.metric("Version",  f"v{prod_info['version']}")
-            c2.metric("F1-Score", f"{prod_info['metrics'].get('best_f1', 0):.4f}")
-            c3.metric("AUC",      f"{prod_info['metrics'].get('best_auc', 0):.4f}")
-            c4.metric("Accuracy", f"{prod_info['metrics'].get('best_accuracy', 0):.4f}")
-            c5.metric("Recall",   f"{prod_info['metrics'].get('best_recall', 0):.4f}")
+            c2.metric("F1-Score", f"{prod_info['f1']:.4f}")
+            c3.metric("AUC",      f"{prod_info['auc']:.4f}")
+            c4.metric("Accuracy", f"{prod_info['accuracy']:.4f}")
+            c5.metric("Recall",   f"{prod_info['recall']:.4f}")
 
             with st.expander("Chi tiết run", expanded=False):
                 col_l, col_r = st.columns(2)
@@ -839,8 +860,11 @@ with tab_registry:
             numeric_cols = [c for c in ["F1", "AUC", "Accuracy", "Recall"]
                             if c in runs_df.columns]
             if numeric_cols and "start_time" in runs_df.columns:
-                plot_df = runs_df[["start_time"] + numeric_cols].dropna().copy()
+                plot_df = runs_df[["start_time"] + numeric_cols].copy()
+                # Convert sang numeric TRƯỚC (string/None → NaN), rồi mới drop
                 plot_df[numeric_cols] = plot_df[numeric_cols].apply(pd.to_numeric, errors="coerce")
+                # Chỉ drop row mà TẤT CẢ metric đều NaN (FAILED/RUNNING runs không có metrics)
+                plot_df = plot_df.dropna(subset=numeric_cols, how="all")
                 plot_df = plot_df.sort_values("start_time")
 
                 fig_trend = px.line(

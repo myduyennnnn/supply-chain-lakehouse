@@ -5,7 +5,7 @@ Tasks: ML Training + MLflow Promotion
 2. promote_to_production -- chuyen model moi nhat sang alias "production"
                             trong MLflow Model Registry
 """
-
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -83,6 +83,8 @@ def train_ml_model() -> None:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"},
+
     )
 
     if result.stdout:

@@ -23,6 +23,5 @@ TRACKING_URI    = os.getenv("MLFLOW_TRACKING_URI",    "http://localhost:5000")
 EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "delivery-risk-prediction")
 MODEL_NAME      = "delivery-risk-model"
 
-# S3 artifact root on R2 — mlflow server dùng path này khi khởi động
 R2_BUCKET       = os.getenv("R2_BUCKET_NAME", "supply-chain-ai-native")
 ARTIFACT_ROOT   = f"s3://{R2_BUCKET}/mlflow/artifacts"
